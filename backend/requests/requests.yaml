@@ -1,0 +1,583 @@
+_type: export
+__export_format: 4
+__export_date: 2025-10-20T12:00:00.000Z
+__export_source: "insomnia"
+resources:
+  # =========================================================
+  # WORKSPACE & ENVIRONMENT
+  # =========================================================
+  - _id: ws_mini_projeto
+    parentId: null
+    _type: workspace
+    name: "Mini Projeto API"
+    scope: "collection"
+
+  - _id: env_base
+    parentId: ws_mini_projeto
+    _type: environment
+    name: "Base Environment"
+    data:
+      base_url: "http://localhost:3000"
+      email_ok: "a@r.com"
+      password_ok: "12345!"
+      email_unregistered: "falha@example.com"
+      weak_password: "123"
+      # Para Templates (CRUD genérico)
+      recurso: "exercises"
+    environment: {}
+
+  # =========================================================
+  # FOLDER: AUTH
+  # =========================================================
+  - _id: grp_auth
+    parentId: ws_mini_projeto
+    _type: request_group
+    name: "Auth"
+
+  # REGISTER OK
+  - _id: req_register_ok
+    parentId: grp_auth
+    _type: request
+    name: "POST /auth/register — OK"
+    method: POST
+    url: "{{ base_url }}/auth/register"
+    body:
+      mimeType: application/json
+      text: |
+        {
+          "email": "demo+{% timestamp 'ms' %}@example.com",
+          "password": "{{ password_ok }}"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+
+  # REGISTER senha fraca
+  - _id: req_register_weak
+    parentId: grp_auth
+    _type: request
+    name: "POST /auth/register — senha fraca"
+    method: POST
+    url: "{{ base_url }}/auth/register"
+    body:
+      mimeType: application/json
+      text: |
+        {
+          "email": "weak.user@example.com",
+          "password": "{{ weak_password }}"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+
+  # REGISTER e-mail inválido
+  - _id: req_register_bad_email
+    parentId: grp_auth
+    _type: request
+    name: "POST /auth/register — email inválido"
+    method: POST
+    url: "{{ base_url }}/auth/register"
+    body:
+      mimeType: application/json
+      text: |
+        {
+          "email": "invalido",
+          "password": "{{ password_ok }}"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+
+  # LOGIN OK
+  - _id: req_login_ok
+    parentId: grp_auth
+    _type: request
+    name: "POST /auth/login — OK"
+    method: POST
+    url: "{{ base_url }}/auth/login"
+    body:
+      mimeType: application/json
+      text: |
+        {
+          "email": "{{ email_ok }}",
+          "password": "{{ password_ok }}"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+
+  # LOGIN senha errada
+  - _id: req_login_wrong_password
+    parentId: grp_auth
+    _type: request
+    name: "POST /auth/login — senha errada"
+    method: POST
+    url: "{{ base_url }}/auth/login"
+    body:
+      mimeType: application/json
+      text: |
+        {
+          "email": "{{ email_ok }}",
+          "password": "SenhaErrada"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+
+  # LOGIN e-mail não registrado
+  - _id: req_login_unregistered
+    parentId: grp_auth
+    _type: request
+    name: "POST /auth/login — email não registrado"
+    method: POST
+    url: "{{ base_url }}/auth/login"
+    body:
+      mimeType: application/json
+      text: |
+        {
+          "email": "{{ email_unregistered }}",
+          "password": "{{ password_ok }}"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+
+  # GET protegido — autorizado
+  - _id: req_protected_ok
+    parentId: grp_auth
+    _type: request
+    name: "GET /auth/protected — autorizado"
+    method: GET
+    url: "{{ base_url }}/auth/protected"
+    headers:
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # GET protegido — sem token (401)
+  - _id: req_protected_no_token
+    parentId: grp_auth
+    _type: request
+    name: "GET /auth/protected — sem token (401)"
+    method: GET
+    url: "{{ base_url }}/auth/protected"
+
+  # GET protegido — token inválido (401)
+  - _id: req_protected_bad_token
+    parentId: grp_auth
+    _type: request
+    name: "GET /auth/protected — token inválido (401)"
+    method: GET
+    url: "{{ base_url }}/auth/protected"
+    headers:
+      - name: Authorization
+        value: "Bearer aaa.bbb.ccc"
+
+  # =========================================================
+  # FOLDER: EXERCISES
+  # =========================================================
+  - _id: grp_exercises
+    parentId: ws_mini_projeto
+    _type: request_group
+    name: "Exercises"
+
+  # GET availability
+  - _id: req_ex_availability
+    parentId: grp_exercises
+    _type: request
+    name: "GET /exercises/availability?name=Supino reto"
+    method: GET
+    url: "{{ base_url }}/exercises/availability?name=Supino%20reto"
+    headers:
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # POST create kg
+  - _id: req_ex_create_kg
+    parentId: grp_exercises
+    _type: request
+    name: "POST /exercises — create (kg)"
+    method: POST
+    url: "{{ base_url }}/exercises"
+    body:
+      mimeType: application/json
+      text: |
+        {
+          "name": "Supino reto",
+          "muscleGroup": "peito",
+          "weightUnit": "kg"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # POST create stack
+  - _id: req_ex_create_stack
+    parentId: grp_exercises
+    _type: request
+    name: "POST /exercises — create (stack)"
+    method: POST
+    url: "{{ base_url }}/exercises"
+    body:
+      mimeType: application/json
+      text: |
+        {
+          "name": "Puxada na máquina",
+          "muscleGroup": "costas",
+          "weightUnit": "stack"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # POST create bodyweight
+  - _id: req_ex_create_bodyweight
+    parentId: grp_exercises
+    _type: request
+    name: "POST /exercises — create (bodyweight)"
+    method: POST
+    url: "{{ base_url }}/exercises"
+    body:
+      mimeType: application/json
+      text: |
+        {
+          "name": "Barra fixa",
+          "muscleGroup": "costas",
+          "weightUnit": "bodyweight"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # GET list all
+  - _id: req_ex_list_all
+    parentId: grp_exercises
+    _type: request
+    name: "GET /exercises — list all"
+    method: GET
+    url: "{{ base_url }}/exercises"
+    headers:
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # GET list filtered
+  - _id: req_ex_list_filtered
+    parentId: grp_exercises
+    _type: request
+    name: "GET /exercises — list filtered"
+    method: GET
+    url: "{{ base_url }}/exercises?muscleGroup=peito&weightUnit=kg&page=1&limit=20"
+    headers:
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # =========================================================
+  # FOLDER: TRAINING DAYS
+  # =========================================================
+  - _id: grp_days
+    parentId: ws_mini_projeto
+    _type: request_group
+    name: "Training Days"
+
+  # POST create day
+  - _id: req_days_create
+    parentId: grp_days
+    _type: request
+    name: "POST /training-days — create"
+    method: POST
+    url: "{{ base_url }}/training-days"
+    body:
+      mimeType: application/json
+      text: |
+        {
+          "label": "Peito A",
+          "exercises": [
+            { "exerciseId": "{% response 'body', 'req_ex_create_kg', '$._id', 'whenChanged' %}" },
+            { "exerciseId": "{% response 'body', 'req_ex_create_stack', '$._id', 'whenChanged' %}" }
+          ]
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # GET list days
+  - _id: req_days_list
+    parentId: grp_days
+    _type: request
+    name: "GET /training-days — list"
+    method: GET
+    url: "{{ base_url }}/training-days"
+    headers:
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # GET day by id
+  - _id: req_days_get_by_id
+    parentId: grp_days
+    _type: request
+    name: "GET /training-days/:id — by id"
+    method: GET
+    url: "{{ base_url }}/training-days/{% response 'body', 'req_days_create', '$._id', 'whenChanged' %}"
+    headers:
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # PATCH replace list
+  - _id: req_days_patch_replace
+    parentId: grp_days
+    _type: request
+    name: "PATCH /training-days/:id — replace list/label"
+    method: PATCH
+    url: "{{ base_url }}/training-days/{% response 'body', 'req_days_create', '$._id', 'whenChanged' %}"
+    body:
+      mimeType: application/json
+      text: |
+        {
+          "label": "Peito A (v2)",
+          "exercises": [
+            { "exerciseId": "{% response 'body', 'req_ex_create_stack', '$._id', 'whenChanged' %}" },
+            { "exerciseId": "{% response 'body', 'req_ex_create_kg', '$._id', 'whenChanged' %}" }
+          ]
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # DELETE day (soft/archive; use ?hard=true para hard delete se suportado)
+  - _id: req_days_delete
+    parentId: grp_days
+    _type: request
+    name: "DELETE /training-days/:id — delete/archive"
+    method: DELETE
+    url: "{{ base_url }}/training-days/{% response 'body', 'req_days_create', '$._id', 'whenChanged' %}"
+    headers:
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # =========================================================
+  # FOLDER: TRAINING SESSIONS
+  # =========================================================
+  - _id: grp_sessions
+    parentId: ws_mini_projeto
+    _type: request_group
+    name: "Training Sessions"
+
+  # POST create session
+  - _id: req_sess_create
+    parentId: grp_sessions
+    _type: request
+    name: "POST /training-sessions — create"
+    method: POST
+    url: "{{ base_url }}/training-sessions"
+    body:
+      mimeType: application/json
+      text: |
+        {
+          "trainingDayId": "{% response 'body', 'req_days_create', '$._id', 'whenChanged' %}",
+          "performedAt": "2025-10-25T12:34:56.000Z",
+          "exercises": [
+            {
+              "exerciseId": "{% response 'body', 'req_ex_create_kg', '$._id', 'whenChanged' %}",
+              "sets": [
+                { "reps": 10, "weight": 20 },
+                { "reps": 10, "weight": 20 },
+                { "reps": 8,  "weight": 22.5 }
+              ]
+            },
+            {
+              "exerciseId": "{% response 'body', 'req_ex_create_stack', '$._id', 'whenChanged' %}",
+              "sets": [
+                { "reps": 12, "weight": null },
+                { "reps": 10, "weight": null },
+                { "reps": 8,  "weight": null }
+              ]
+            }
+          ],
+          "notes": "Treino ok"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # GET sessions list
+  - _id: req_sess_list
+    parentId: grp_sessions
+    _type: request
+    name: "GET /training-sessions — list"
+    method: GET
+    url: "{{ base_url }}/training-sessions"
+    headers:
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # GET sessions list filtered (by day + range)
+  - _id: req_sess_list_filtered
+    parentId: grp_sessions
+    _type: request
+    name: "GET /training-sessions — list filtered"
+    method: GET
+    url: "{{ base_url }}/training-sessions?trainingDayId={% response 'body', 'req_days_create', '$._id', 'whenChanged' %}&from=2025-10-01&to=2025-10-31"
+    headers:
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # GET session by id
+  - _id: req_sess_get_by_id
+    parentId: grp_sessions
+    _type: request
+    name: "GET /training-sessions/:id — by id"
+    method: GET
+    url: "{{ base_url }}/training-sessions/{% response 'body', 'req_sess_create', '$._id', 'whenChanged' %}"
+    headers:
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # DELETE session
+  - _id: req_sess_delete
+    parentId: grp_sessions
+    _type: request
+    name: "DELETE /training-sessions/:id — delete"
+    method: DELETE
+    url: "{{ base_url }}/training-sessions/{% response 'body', 'req_sess_create', '$._id', 'whenChanged' %}"
+    headers:
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # =========================================================
+  # FOLDER: PREFILL (ExerciseLast cache)
+  # =========================================================
+  - _id: grp_prefill
+    parentId: ws_mini_projeto
+    _type: request_group
+    name: "Prefill"
+
+  # GET prefill for day
+  - _id: req_prefill_get_for_day
+    parentId: grp_prefill
+    _type: request
+    name: "GET /prefill?trainingDayId=:dayId"
+    method: GET
+    url: "{{ base_url }}/prefill?trainingDayId={% response 'body', 'req_days_create', '$._id', 'whenChanged' %}"
+    headers:
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # =========================================================
+  # FOLDER: TEMPLATES (CRUD genérico)
+  # =========================================================
+  - _id: grp_templates
+    parentId: ws_mini_projeto
+    _type: request_group
+    name: "Templates (CRUD genérico)"
+
+  # POST create [recurso]
+  - _id: req_tpl_create
+    parentId: grp_templates
+    _type: request
+    name: "POST /[recurso] — create"
+    method: POST
+    url: "{{ base_url }}/{{ recurso }}"
+    body:
+      mimeType: application/json
+      text: |
+        {
+          "example": "substitua pelos campos reais do recurso"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # GET list [recurso]
+  - _id: req_tpl_list
+    parentId: grp_templates
+    _type: request
+    name: "GET /[recurso] — list"
+    method: GET
+    url: "{{ base_url }}/{{ recurso }}"
+    headers:
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # GET list filtered [recurso]
+  - _id: req_tpl_list_filtered
+    parentId: grp_templates
+    _type: request
+    name: "GET /[recurso]?key=value — list filtered"
+    method: GET
+    url: "{{ base_url }}/{{ recurso }}?key=value"
+    headers:
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # GET by id [recurso]
+  - _id: req_tpl_get_by_id
+    parentId: grp_templates
+    _type: request
+    name: "GET /[recurso]/:id — by id"
+    method: GET
+    url: "{{ base_url }}/{{ recurso }}/{% response 'body', 'req_tpl_create', '$._id', 'whenChanged' %}"
+    headers:
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # PUT replace [recurso]
+  - _id: req_tpl_put_replace
+    parentId: grp_templates
+    _type: request
+    name: "PUT /[recurso]/:id — replace"
+    method: PUT
+    url: "{{ base_url }}/{{ recurso }}/{% response 'body', 'req_tpl_create', '$._id', 'whenChanged' %}"
+    body:
+      mimeType: application/json
+      text: |
+        {
+          "example": "objeto completo substituto"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # PATCH partial [recurso]
+  - _id: req_tpl_patch_partial
+    parentId: grp_templates
+    _type: request
+    name: "PATCH /[recurso]/:id — partial"
+    method: PATCH
+    url: "{{ base_url }}/{{ recurso }}/{% response 'body', 'req_tpl_create', '$._id', 'whenChanged' %}"
+    body:
+      mimeType: application/json
+      text: |
+        {
+          "example": "campos parciais"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"
+
+  # DELETE [recurso]
+  - _id: req_tpl_delete
+    parentId: grp_templates
+    _type: request
+    name: "DELETE /[recurso]/:id — delete"
+    method: DELETE
+    url: "{{ base_url }}/{{ recurso }}/{% response 'body', 'req_tpl_create', '$._id', 'whenChanged' %}"
+    headers:
+      - name: Authorization
+        value: "Bearer {% response 'body', 'req_login_ok', '$.token', 'never' %}"

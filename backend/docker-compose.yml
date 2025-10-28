@@ -1,0 +1,29 @@
+services:
+  mongo:
+    image: mongo:8.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo-data:/data/db
+  mongo-express:
+    image: mongo-express:1.0.2-20
+    # (restante igual)
+
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    ports:
+      - "8082:8081"                  # abre em http://localhost:8082
+    environment:
+      # Fala com o serviço "mongo" pela porta do CONTAINER (27017) + authSource=admin
+      ME_CONFIG_MONGODB_URL: "mongodb://root:example@mongo:27017/?authSource=admin"
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+
+volumes:  
+  mongo-data:
