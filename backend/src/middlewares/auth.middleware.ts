@@ -22,9 +22,13 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     (req as any).user = { sub: String(payload.sub), email: (payload as any).email };
     return next();
   } catch (err: any) {
-    if (err?.name === "TokenExpiredError") {
-      return res.status(401).json({ error: "Token expirado" });
-    }
-    return res.status(401).json({ error: "Token inválido" });
+  if (err?.name === "TokenExpiredError") {
+    // diagnóstico: ver exp vs agora
+    const dec: any = jwt.decode(token);
+    const now = Math.floor(Date.now() / 1000);
+    console.warn("[AUTH] expired | now:", now, "exp:", dec?.exp, "diff:", (dec?.exp ?? 0) - now);
+    return res.status(401).json({ error: "Token expirado" });
   }
+  return res.status(401).json({ error: "Token inválido" });
+}
 }

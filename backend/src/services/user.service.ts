@@ -25,7 +25,7 @@ type Claims = { sub: string; email: string };
 function issueToken(claims: Claims) {
   const options: SignOptions = {
     algorithm: "HS256",
-    expiresIn: "10h", 
+    expiresIn: 3600, 
   };
   return jwt.sign(claims, SECRET, options);
 }
