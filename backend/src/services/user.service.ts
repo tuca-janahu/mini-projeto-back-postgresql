@@ -14,8 +14,8 @@ function getJwtSecret(): Secret {
   return s; 
 }
 const SECRET: Secret = getJwtSecret();
-const EXPIRES: string = (process.env.JWT_EXPIRES || "3600").trim();
-  if (!EXPIRES) throw new Error("JWT_EXPIRES missing");
+// const EXPIRES: string = (process.env.JWT_EXPIRES || "3600").trim();
+//   if (!EXPIRES) throw new Error("JWT_EXPIRES missing");
 
 const DUMMY_HASH =
   "$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36T1Zq9VHtVui1eS8aJf.eW"; // "senha" bcrypt
@@ -25,7 +25,7 @@ type Claims = { sub: string; email: string };
 function issueToken(claims: Claims) {
   const options: SignOptions = {
     algorithm: "HS256",
-    expiresIn: Number(EXPIRES), // use configured expiration
+    expiresIn: "10h", 
   };
   return jwt.sign(claims, SECRET, options);
 }
