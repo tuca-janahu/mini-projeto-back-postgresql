@@ -7,13 +7,21 @@ let bootstrapped = false;
 async function ensureBoot() {
   if (bootstrapped) return;
 
+  console.log("[BOOT] authenticate...");
   await db.sequelize.authenticate();
 
+  // ⚠️ Só pra criar (primeira vez): set DB_SYNC=true no Vercel
   if (process.env.DB_SYNC === "true") {
-    console.log("⏳ Syncing DB (alter)...");
-    await db.sequelize.sync({ alter: true }); 
-    console.log("✅ DB synced (API).");
+    console.log("[BOOT] syncing (alter)...");
+    await db.sequelize.sync({ alter: true });
+    console.log("[BOOT] sync done.");
   }
+
+  // debug: liste as models carregadas
+  console.log(
+    "[BOOT] models:",
+    db.sequelize.modelManager.models.map(m => m.tableName)
+  );
 
   bootstrapped = true;
 }

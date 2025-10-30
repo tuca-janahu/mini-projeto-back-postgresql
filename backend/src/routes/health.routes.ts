@@ -1,9 +1,9 @@
 import { Router } from "express";
 import db from "../models";
 
-const r = Router();
+const router = Router();
 
-r.get("/db", async (_req, res) => {
+router.get("/db", async (_req, res) => {
   try {
     await db.sequelize.authenticate();
     // opcional: sanity query
@@ -18,7 +18,7 @@ r.get("/db", async (_req, res) => {
 });
 
 
-r.get("/", (_req, res) => {
+router.get("/", (_req, res) => {
   const cfg = db.sequelize.config || {};
   const dialect = db.sequelize.getDialect ? db.sequelize.getDialect() : "unknown";
   res.json({
@@ -31,4 +31,4 @@ r.get("/", (_req, res) => {
   });
 });
 
-export default r;
+export default router;
