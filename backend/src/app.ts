@@ -7,12 +7,18 @@ import exerciseRoutes from "./routes/exercise.routes";
 import trainingDayRoutes from "./routes/trainingDay.routes";
 import trainingSessionRoutes from "./routes/trainingSession.routes";
 import healthRoutes from "./routes/health.routes";
+import { ensureDb } from "./models";
 
 
 const app = express();
 
 app.use(express.json());
 app.use(cors());
+
+app.use(async (_req, res, next) => {
+  try { await ensureDb(); next(); }
+  catch (e) { console.error(e); res.status(500).json({ error: "DB not ready" }); }
+});
 
 app.get("/", (_req, res) => res.send("✅ API online"));
 
