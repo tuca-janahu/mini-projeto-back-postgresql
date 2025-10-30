@@ -1,21 +1,20 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import app from "../src/app";
-import db from "../src/config/configdb";
-import { connection } from "mongoose";
+import db from "../src/models"; // <- exporta { sequelize, Sequelize, ... }
 
-// Conecta no Mongo (cache global dentro do connect)
 let bootstrapped = false;
+
 async function ensureBoot() {
-  if (!bootstrapped) {
-    console.log("[API] ensureBoot: connecting...");
-    await db.connect();
-    bootstrapped = true;
-    console.log("[API] ensureBoot: connected. state =", connection.readyState);
-  }
+  if (bootstrapped) return;
+  console.log("[API] ensureBoot: connecting to DB...");
+  await db.sequelize.authenticate();
+  // Em dev/local você poderia usar sync; em produção use migrations.
+  // if (process.env.NODE_ENV !== "production") { await db.sequelize.sync(); }
+  bootstrapped = true;
+  console.log("[API] ensureBoot: connected.");
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   await ensureBoot();
-  return (app as any)(req, res);
+  return (app as any)(req, res); // delega para o Express
 }
-

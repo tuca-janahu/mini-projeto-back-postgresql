@@ -14,7 +14,7 @@ app.use(cors());
 
 // app.ts, ANTES das rotas (temporário pra debug)
 db.sequelize.authenticate().then(() => {
-  console.log("✅ Conexão com o banco de dados estabelecida com sucesso.");
+  console.log("✅ Conexão com o banco de dados estabelecida com sucesso (APP).");
 }).catch((err: Error) => {
   console.error("❌ Não foi possível conectar ao banco de dados:", err);
 });
@@ -25,6 +25,13 @@ app.use((req, _res, next) => {
   }
   next();
 });
+
+db.sequelize.authenticate();
+if (process.env.DB_SYNC === "true") {
+  console.log("⏳ Syncing DB…");
+   db.sequelize.sync({ alter: true }); // só em DEV!
+  console.log("✅ DB synced.");
+}
 
 app.get("/", (_req, res) => {
   res.send("✅ API online");

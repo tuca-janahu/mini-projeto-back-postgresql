@@ -5,7 +5,7 @@ import db from "./models/index";
   try {
     const port = process.env.PORT || 3000;
     await db.sequelize.authenticate();
-    console.log("✅ Conexão com o banco estabelecida com sucesso.");
+    console.log("✅ Conexão com o banco estabelecida com sucesso. (SERVER)");
 
     app.listen(port, () => {
       console.log(`🚀 Servidor no ar: http://localhost:${port}`);
