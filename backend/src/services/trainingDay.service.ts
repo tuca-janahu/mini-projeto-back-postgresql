@@ -1,4 +1,4 @@
-import db from "../models";
+import { db } from "../models";
 import { Transaction, Op } from "sequelize";
 
 function toId(v: string | number) {
@@ -20,13 +20,13 @@ export async function createTrainingDay(
 
   // valida existência/pertencimento
   if (ids.length) {
-    const valid = await db.exercise.count({ where: { id: { [Op.in]: ids }, userId: uid } });
+    const valid = await db.exercises.count({ where: { id: { [Op.in]: ids }, userId: uid } });
     if (valid !== ids.length) throw new Error("Invalid exercises");
   }
 
   return await db.sequelize.transaction(async (tx: Transaction) => {
     // criar o dia
-    const day = await db.trainingDay.create(
+    const day = await db.trainingDays.create(
       { userId: uid, label: String(label).trim() },
       { transaction: tx }
     );
@@ -37,8 +37,8 @@ export async function createTrainingDay(
     }
 
     // retornar com include
-    const full = await db.trainingDay.findByPk(day.get("id") as number, {
-      include: [{ model: db.exercise, as: "exercises" }],
+    const full = await db.trainingDays.findByPk(day.get("id") as number, {
+      include: [{ model: db.exercises, as: "exercises" }],
       transaction: tx,
     });
     return full!;
@@ -47,7 +47,7 @@ export async function createTrainingDay(
 
 export async function listTrainingDays(userId: string | number) {
   const uid = toId(userId);
-  return await db.trainingDay.findAll({
+  return await db.trainingDays.findAll({
     where: { userId: uid, isArchived: false },
     order: [["createdAt", "DESC"]],
   });
@@ -57,9 +57,9 @@ export async function listTrainingDays(userId: string | number) {
 export async function getTrainingDay(userId: string | number, id: string | number) {
   const uid = toId(userId);
   const tid = toId(id);
-  return await db.trainingDay.findOne({
+  return await db.trainingDays.findOne({
     where: { id: tid, userId: uid },
-    include: [{ model: db.exercise, as: "exercises" }],
+    include: [{ model: db.exercises, as: "exercises" }],
   });
 }
 
@@ -73,7 +73,7 @@ export async function updateTrainingDay(
   const tid = toId(id);
 
   return await db.sequelize.transaction(async (tx: Transaction) => {
-    const day = await db.trainingDay.findOne({ where: { id: tid, userId: uid }, transaction: tx });
+    const day = await db.trainingDays.findOne({ where: { id: tid, userId: uid }, transaction: tx });
     if (!day) return null;
 
     // atualiza label
@@ -88,7 +88,7 @@ export async function updateTrainingDay(
       if (new Set(ids).size !== ids.length) throw new Error("Duplicated exercises");
 
       if (ids.length) {
-        const valid = await db.exercise.count({
+        const valid = await db.exercises.count({
           where: { id: { [Op.in]: ids }, userId: uid },
           transaction: tx,
         });
@@ -100,8 +100,8 @@ export async function updateTrainingDay(
     }
 
     // retornar com include
-    const full = await db.trainingDay.findByPk(tid, {
-      include: [{ model: db.exercise, as: "exercises" }],
+    const full = await db.trainingDays.findByPk(tid, {
+      include: [{ model: db.exercises, as: "exercises" }],
       transaction: tx,
     });
     return full!;
@@ -111,7 +111,7 @@ export async function updateTrainingDay(
 export async function archiveTrainingDay(userId: string | number, id: string | number) {
   const uid = toId(userId);
   const tid = toId(id);
-  const day = await db.trainingDay.findOne({ where: { id: tid, userId: uid } });
+  const day = await db.trainingDays.findOne({ where: { id: tid, userId: uid } });
   if (!day) return null;
   day.set({ isArchived: true });
   await day.save();

@@ -1,96 +1,99 @@
-  import { Sequelize } from "sequelize";
-  import userFactory from "./user.model";
-  import exerciseFactory from "./exercise.model";
-  import trainingDayFactory from "./trainingDay.model";
-  import trainingDayExerciseFactory from "./trainingDayExercise.model";
+// src/models/index.ts
+import { Sequelize } from "sequelize";
+import pg from "pg";
+import dbConfig from "../config/configdb";
 
-  import trainingSessionFactory from "./trainingSession.model";
-  import trainingSessionSetFactory from "./trainingSessionSet.model";
-  import trainingSessionExerciseFactory from "./trainingSessionExercise.model";
-  import dbConfig from "../config/configdb"; 
-  import pg from "pg";
+// MODELS (fábricas)
+import userFactory from "./user.model";
+import exerciseFactory from "./exercise.model";
+import trainingDayFactory from "./trainingDay.model";
+import trainingDayExerciseFactory from "./trainingDayExercise.model";
+import trainingSessionFactory from "./trainingSession.model";
+import trainingSessionExerciseFactory from "./trainingSessionExercise.model";
+import trainingSessionSetFactory from "./trainingSessionSet.model";
 
-  const sequelize = new Sequelize(
-    dbConfig.database as string,
-    dbConfig.username as string,
-    dbConfig.password as string,
-    {
-      host: dbConfig.host,
-      port: dbConfig.port as number,
-      dialect: dbConfig.dialect as any,   // postgres
-      dialectModule: pg,
-      dialectOptions: {
-        ssl:{
-          require: true,
-          rejectUnauthorized: false,
-        },
-      },
-      pool: {
-          max: dbConfig.pool?.max || 2,
-          min: dbConfig.pool?.min || 0,
-          acquire: dbConfig.pool?.acquire || 3000,
-          idle: dbConfig.pool?.idle || 0,
-          evict: dbConfig.pool?.evict || 10000,
-      }
-    }
-  );
+const sequelize = new Sequelize(
+  dbConfig.database as string,
+  dbConfig.username as string,
+  dbConfig.password as string,
+  {
+    host: dbConfig.host,
+    port: dbConfig.port as number,
+    dialect: "postgres",
+    dialectModule: pg as any,
+    dialectOptions: 
+    { ssl: { require: true, rejectUnauthorized: false } },
+     
+    pool: {
+      max: dbConfig.pool?.max ?? 2,
+      min: dbConfig.pool?.min ?? 0,
+      acquire: dbConfig.pool?.acquire ?? 30000,
+      idle: dbConfig.pool?.idle ?? 10000,
+      evict: dbConfig.pool?.evict ?? 10000,
+    },
+    logging: false,
+  }
+);
 
-  const users = userFactory(sequelize);
-  const exercise = exerciseFactory(sequelize);
+// — Definição dos models —
+const users = userFactory(sequelize);
+const exercises = exerciseFactory(sequelize);
+const trainingDays = trainingDayFactory(sequelize);
+const trainingDayExercises = trainingDayExerciseFactory(sequelize);
+const trainingSessions = trainingSessionFactory(sequelize);
+const trainingSessionExercises = trainingSessionExerciseFactory(sequelize);
+const trainingSessionSets = trainingSessionSetFactory(sequelize);
 
-  const trainingDay = trainingDayFactory(sequelize);
-  const trainingDayExercise = trainingDayExerciseFactory(sequelize);
+// — Associações — (use SEMPRE os nomes acima)
+trainingSessions.belongsTo(users, { foreignKey: "userId", as: "user" });
+users.hasMany(trainingSessions, { foreignKey: "userId", as: "trainingSessions" });
 
-  const trainingSession = trainingSessionFactory(sequelize);
-  const trainingSessionExercise = trainingSessionExerciseFactory(sequelize);
-  const trainingSessionSet = trainingSessionSetFactory(sequelize);
+trainingSessions.belongsTo(trainingDays, { foreignKey: "trainingDayId", as: "trainingDay" });
+trainingDays.hasMany(trainingSessions, { foreignKey: "trainingDayId", as: "sessions" });
 
+trainingDayExercises.belongsTo(trainingDays, { foreignKey: "trainingDayId", as: "day" });
+trainingDays.hasMany(trainingDayExercises, { foreignKey: "trainingDayId", as: "items" });
 
+trainingDayExercises.belongsTo(exercises, { foreignKey: "exerciseId", as: "exercise" });
+exercises.hasMany(trainingDayExercises, { foreignKey: "exerciseId", as: "inDays" });
 
-// 2) ASSOCIE aqui (use os mesmos nomes que exporta)
-trainingSession.belongsTo(users, { foreignKey: "userId", as: "user" });
-users.hasMany(trainingSession, { foreignKey: "userId", as: "trainingSessions" });
+trainingSessionExercises.belongsTo(trainingSessions, { foreignKey: "trainingSessionId", as: "session" });
+trainingSessions.hasMany(trainingSessionExercises, { foreignKey: "trainingSessionId", as: "items" });
 
-trainingSession.belongsTo(trainingDay, { foreignKey: "trainingDayId", as: "trainingDay" });
-trainingDay.hasMany(trainingSession, { foreignKey: "trainingDayId", as: "sessions" });
+trainingSessionExercises.belongsTo(exercises, { foreignKey: "exerciseId", as: "exercise" });
+exercises.hasMany(trainingSessionExercises, { foreignKey: "exerciseId", as: "sessionItems" });
 
-trainingDayExercise.belongsTo(trainingDay, { foreignKey: "trainingDayId", as: "day" });
-trainingDay.hasMany(trainingDayExercise, { foreignKey: "trainingDayId", as: "items" });
+trainingSessionSets.belongsTo(trainingSessionExercises, { foreignKey: "trainingSessionExerciseId", as: "sessionExercise" });
+trainingSessionExercises.hasMany(trainingSessionSets, { foreignKey: "trainingSessionExerciseId", as: "sets" });
 
-trainingDayExercise.belongsTo(exercise, { foreignKey: "exerciseId", as: "exercise" });
-exercise.hasMany(trainingDayExercise, { foreignKey: "exerciseId", as: "inDays" });
+export const db = {
+  sequelize,
+  users,
+  exercises,
+  trainingDays,
+  trainingDayExercises,
+  trainingSessions,
+  trainingSessionExercises,
+  trainingSessionSets,
+};
+export type DB = typeof db;
 
-trainingSessionExercise.belongsTo(trainingSession, { foreignKey: "trainingSessionId", as: "session" });
-trainingSession.hasMany(trainingSessionExercise, { foreignKey: "trainingSessionId", as: "items" });
-
-trainingSessionExercise.belongsTo(exercise, { foreignKey: "exerciseId", as: "exercise" });
-exercise.hasMany(trainingSessionExercise, { foreignKey: "exerciseId", as: "sessionItems" });
-
-trainingSessionSet.belongsTo(trainingSessionExercise, { foreignKey: "trainingSessionExerciseId", as: "sessionExercise" });
-trainingSessionExercise.hasMany(trainingSessionSet, { foreignKey: "trainingSessionExerciseId", as: "sets" });
-
-  export const db = {
-    Sequelize,
-    sequelize,
-    users,
-    exercise,
-    trainingDay,
-    trainingDayExercise,
-    trainingSession,
-    trainingSessionExercise,
-    trainingSessionSet,
-  };
-
-  console.info("[models] registrados:", Object.keys(sequelize.models));
-
-  export type DB = typeof db;
-  export default db;
-
-export async function syncDb() {
-  console.info("⏳ Syncing DB…");
-  await sequelize.authenticate();
-  // use { alter:true } só durante desenvolvimento; em produção prefira migrations
-  await sequelize.sync({ alter: true });
-  console.info("✅ DB synced.");
+// — Bootstrap com cache global (funciona no Vercel) —
+declare global {
+  // eslint-disable-next-line no-var
+  var __dbReady: Promise<void> | undefined;
 }
 
+export function ensureDb(): Promise<void> {
+  if (!globalThis.__dbReady) {
+    globalThis.__dbReady = (async () => {
+      await sequelize.authenticate();
+      // Em PROD, preferir migrations. Para destravar agora, use sync().
+      await sequelize.sync(); // ou { alter: true } somente em DEV
+      console.info("✅ DB ready (authenticate + sync).");
+    })();
+  }
+  return globalThis.__dbReady;
+}
+
+export default db;

@@ -12,13 +12,6 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// app.ts, ANTES das rotas (temporário pra debug)
-db.sequelize.authenticate().then(() => {
-  console.log("✅ Conexão com o banco de dados estabelecida com sucesso (APP).");
-}).catch((err: Error) => {
-  console.error("❌ Não foi possível conectar ao banco de dados:", err);
-});
-
 app.use((req, _res, next) => {
   if (req.path === "/auth/register" && req.method === "POST") {
     console.log("[MIDDLEWARE] register content-type:", req.headers["content-type"]);

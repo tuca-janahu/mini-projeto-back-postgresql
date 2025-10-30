@@ -1,4 +1,4 @@
-import db from "../models";
+import {db} from "../models";
 import { UniqueConstraintError, Op, ValidationError } from "sequelize";
 import { MuscleGroup, WeightUnit } from "../models/exercise.model";
 
@@ -14,7 +14,7 @@ export async function isExerciseNameAvailable(
 ) {
   const uid = toUserId(userId);
   const nameLower = name.trim().toLowerCase();
-  const exists = await db.exercise.count({ where: { userId: uid, nameLower } });
+  const exists = await db.exercises.count({ where: { userId: uid, nameLower } });
   return exists === 0;
 }
 
@@ -31,7 +31,7 @@ export async function createExercise(
   if (!available) throw new Error("Exercise name already exists");
 
   try {
-    const exercise = await db.exercise.create({
+    const exercise = await db.exercises.create({
       userId: uid,
       name: name.trim(), // model setter handles nameLower
       muscleGroup,
@@ -68,7 +68,7 @@ export async function listExercises(
 
   const offset = (page - 1) * limit;
 
-  const { rows, count } = await db.exercise.findAndCountAll({
+  const { rows, count } = await db.exercises.findAndCountAll({
     where,
     order: [["createdAt", "DESC"]],
     limit,
@@ -84,7 +84,7 @@ export async function replaceExercise(
   data: { name: string; muscleGroup: MuscleGroup; weightUnit: WeightUnit }
 ) {
   const uid = toUserId(userId);
-  const exercise = await db.exercise.findOne({ where: { id: Number(id), userId: uid } });
+  const exercise = await db.exercises.findOne({ where: { id: Number(id), userId: uid } });
   if (!exercise) return null;
 
   try {
@@ -115,7 +115,7 @@ export async function patchExercise(
   data: Partial<{ name: string; muscleGroup: MuscleGroup; weightUnit: WeightUnit; isArchived: boolean }>
 ) {
   const uid = toUserId(userId);
-  const exercise = await db.exercise.findOne({ where: { id: Number(id), userId: uid } });
+  const exercise = await db.exercises.findOne({ where: { id: Number(id), userId: uid } });
   if (!exercise) return null;
 
   const updates: any = {};
@@ -148,7 +148,7 @@ export async function patchExercise(
 
 export async function deleteExercise(userId: string | number, id: number | string) {
   const uid = toUserId(userId);
-  const exercise = await db.exercise.findOne({ where: { id: Number(id), userId: uid } });
+  const exercise = await db.exercises.findOne({ where: { id: Number(id), userId: uid } });
   if (!exercise) return null;
   await exercise.destroy();
   return exercise;

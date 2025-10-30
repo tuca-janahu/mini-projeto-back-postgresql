@@ -1,12 +1,12 @@
 // src/services/trainingSession.service.ts
-import db from "../models";
+import { db } from "../models";
 import { Op, Transaction, UniqueConstraintError, ValidationError } from "sequelize";
 
-const TrainingDay = db.trainingDay;
-const Exercise = db.exercise;
-const TrainingSession = db.trainingSession;
-const TrainingSessionExercise = db.trainingSessionExercise;
-const TrainingSessionSet = db.trainingSessionSet;
+const TrainingDay = db.trainingDays;
+const Exercise = db.exercises;
+const TrainingSession = db.trainingSessions;
+const TrainingSessionExercise = db.trainingSessionExercises;
+const TrainingSessionSet = db.trainingSessionSets;
 
 /* ===== Types equivalentes ===== */
 export type SetItem = { reps: number | null; weight: number | null };
