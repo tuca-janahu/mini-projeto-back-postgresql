@@ -81,13 +81,16 @@ trainingSessionExercise.hasMany(trainingSessionSet, { foreignKey: "trainingSessi
     trainingSessionSet,
   };
 
+  console.info("[models] registrados:", Object.keys(sequelize.models));
+
   export type DB = typeof db;
   export default db;
 
-  export async function syncDb() {
+export async function syncDb() {
   console.info("⏳ Syncing DB…");
   await sequelize.authenticate();
   // use { alter:true } só durante desenvolvimento; em produção prefira migrations
   await sequelize.sync({ alter: true });
   console.info("✅ DB synced.");
 }
+
