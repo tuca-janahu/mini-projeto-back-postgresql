@@ -19,6 +19,12 @@
       port: dbConfig.port as number,
       dialect: dbConfig.dialect as any,   // postgres
       dialectModule: pg,
+      dialectOptions: {
+        ssl:{
+          require: true,
+          rejectUnauthorized: false,
+        },
+      },
       pool: {
           max: dbConfig.pool?.max || 2,
           min: dbConfig.pool?.min || 0,
