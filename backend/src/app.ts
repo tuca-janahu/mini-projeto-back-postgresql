@@ -5,8 +5,7 @@ import exerciseRoutes from "./routes/exercise.routes";
 import trainingDayRoutes from "./routes/trainingDay.routes";
 import trainingSessionRoutes from "./routes/trainingSession.routes";
 import healthRoutes from "./routes/health.routes";
-import { connection } from "mongoose";
-import db from "./database/configdb"; // ajuste o caminho se preciso
+import db from "./models/index"; // ajuste o caminho se preciso
 
 const app = express();
 
@@ -14,18 +13,10 @@ app.use(express.json());
 app.use(cors());
 
 // app.ts, ANTES das rotas (temporário pra debug)
-app.use(async (req, res, next) => {
-  if (connection.readyState !== 1) {
-    try {
-      console.log("[DB-GUARD] connecting on-demand for", req.method, req.path);
-      await db.connect(); // idempotente (usa cache)
-      console.log("[DB-GUARD] connected. state =", connection.readyState);
-    } catch (err) {
-      console.error("[DB-GUARD] connect failed:", err);
-      return res.status(503).json({ error: "DB unavailable" });
-    }
-  }
-  next();
+db.sequelize.authenticate().then(() => {
+  console.log("✅ Conexão com o banco de dados estabelecida com sucesso.");
+}).catch((err: Error) => {
+  console.error("❌ Não foi possível conectar ao banco de dados:", err);
 });
 
 app.use((req, _res, next) => {

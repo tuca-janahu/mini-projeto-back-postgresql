@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { authMiddleware } from "../middlewares/auth.middleware";
+import { requireAuth } from "../middlewares/auth.middleware";
 import * as ctrl from "../controllers/trainingSession.controller";
 
 const router = Router();
-router.use(authMiddleware);
+router.use(requireAuth);
 
 router.post("/", ctrl.create);
 router.get("/", ctrl.list);

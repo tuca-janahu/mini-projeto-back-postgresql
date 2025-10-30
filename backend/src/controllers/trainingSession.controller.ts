@@ -9,24 +9,34 @@ function getUserId(req: Request): string {
 
 // POST /training-sessions
 export async function create(req: Request, res: Response) {
-  try {
+  
     const userId = getUserId(req);
-    const {
-      trainingDayId,
-      performedAt,
-      exercises,
-      notes,
-    } = req.body as {
+    const { trainingDayId, performedAt, exercises, notes } = req.body as {
       trainingDayId: string;
       performedAt?: string | Date;
-      exercises: { exerciseId: string; sets: { reps: number | null; weight: number | null }[] }[];
+      exercises: {
+        exerciseId: string;
+        sets: { reps: number | null; weight: number | null }[];
+      }[];
       notes?: string;
     };
 
-    if (!trainingDayId) return res.status(400).json({ error: "trainingDayId é obrigatório" });
-    if (!Array.isArray(exercises) || exercises.length === 0)
-      return res.status(400).json({ error: "exercises é obrigatório e não pode ser vazio" });
+    if (!trainingDayId)
+      return res.status(400).json({ error: "trainingDayId é obrigatório" });
+    if (
+      !Array.isArray(exercises) ||
+      exercises.length === 0 ||
+      exercises.length > 50
+    )
+      return res
+        .status(400)
+        .json({ error: "exercises é obrigatório (1–50 itens)" });
 
+    const when = performedAt ? new Date(performedAt) : new Date();
+    if (Number.isNaN(when.getTime()))
+      return res.status(400).json({ error: "performedAt inválido" });
+
+    try {
     const created = await trainingSessionService.createTrainingSession(
       userId,
       trainingDayId,
@@ -37,13 +47,28 @@ export async function create(req: Request, res: Response) {
 
     return res.status(201).json(created);
   } catch (err: any) {
-    if (err?.message === "E_TRAINING_DAY_NOT_FOUND") return res.status(404).json({ error: "TrainingDay não encontrado" });
-    if (err?.message === "E_EXERCISE_NOT_FOUND") return res.status(404).json({ error: "Exercise inexistente para este usuário" });
-    if (err?.message === "E_DUPLICATED_EXERCISES_IN_SESSION") return res.status(400).json({ error: "Exercício duplicado na sessão" });
-    if (err?.message?.startsWith?.("E_INVALID_") || err?.message?.startsWith?.("E_WEIGHT_"))
+    if (err?.status) return res.status(err.status).json({ error: err.message });
+
+    if (err?.message === "E_TRAINING_DAY_NOT_FOUND")
+      return res.status(404).json({ error: "TrainingDay não encontrado" });
+    if (err?.message === "E_EXERCISE_NOT_FOUND")
+      return res
+        .status(404)
+        .json({ error: "Exercise inexistente para este usuário" });
+    if (err?.message === "E_DUPLICATED_EXERCISES_IN_SESSION")
+      return res.status(400).json({ error: "Exercício duplicado na sessão" });
+    if (
+      err?.message?.startsWith?.("E_INVALID_") ||
+      err?.message?.startsWith?.("E_WEIGHT_")
+    )
       return res.status(400).json({ error: err.message });
 
-    return res.status(500).json({ error: "Não foi possível criar a sessão", details: err?.message });
+    return res
+      .status(500)
+      .json({
+        error: "Não foi possível criar a sessão",
+        details: err?.message,
+      });
   }
 }
 
@@ -65,7 +90,7 @@ export async function list(req: Request, res: Response) {
 
     const p = Math.max(1, parseInt(page, 10) || 1);
     const l = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
-    const s = sort === "asc" ? "asc" : "desc";
+    const s: "asc" | "desc" = String(sort).toLowerCase() === "asc" ? "asc" : "desc";
 
     const result = await trainingSessionService.listTrainingSessions(
       userId,
@@ -77,7 +102,9 @@ export async function list(req: Request, res: Response) {
 
     return res.json(result); // { items, total, page, limit }
   } catch (err: any) {
-    return res.status(500).json({ error: "Falha ao listar sessões", details: err?.message });
+    return res
+      .status(500)
+      .json({ error: "Falha ao listar sessões", details: err?.message });
   }
 }
 
@@ -91,7 +118,9 @@ export async function getById(req: Request, res: Response) {
     if (!found) return res.status(404).json({ error: "Sessão não encontrada" });
     return res.json(found);
   } catch (err: any) {
-    return res.status(500).json({ error: "Falha ao buscar sessão", details: err?.message });
+    return res
+      .status(500)
+      .json({ error: "Falha ao buscar sessão", details: err?.message });
   }
 }
 
@@ -105,7 +134,9 @@ export async function remove(req: Request, res: Response) {
     if (!ok) return res.status(404).json({ error: "Sessão não encontrada" });
     return res.status(204).send();
   } catch (err: any) {
-    return res.status(500).json({ error: "Falha ao excluir sessão", details: err?.message });
+    return res
+      .status(500)
+      .json({ error: "Falha ao excluir sessão", details: err?.message });
   }
 }
 
@@ -115,10 +146,16 @@ export async function prefill(req: Request, res: Response) {
     const userId = getUserId(req);
     const { trainingDayId } = req.params;
 
-    const data = await trainingSessionService.getPrefillForTrainingDay(userId, trainingDayId);
+    const data = await trainingSessionService.getPrefillForTrainingDay(
+      userId,
+      trainingDayId
+    );
     return res.json(data);
   } catch (err: any) {
-    if (err?.message === "E_TRAINING_DAY_NOT_FOUND") return res.status(404).json({ error: "TrainingDay não encontrado" });
-    return res.status(500).json({ error: "Falha ao obter prefill", details: err?.message });
+    if (err?.message === "E_TRAINING_DAY_NOT_FOUND")
+      return res.status(404).json({ error: "TrainingDay não encontrado" });
+    return res
+      .status(500)
+      .json({ error: "Falha ao obter prefill", details: err?.message });
   }
 }

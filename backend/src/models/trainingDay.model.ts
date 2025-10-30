@@ -1,38 +1,57 @@
-import { Schema, model, Document, Types } from "mongoose";
+import { Sequelize, DataTypes, Model, Optional, ModelCtor } from "sequelize";
 
-export interface ITrainingDay extends Document {
-  userId: Types.ObjectId;
-  label: string;
-  exercises: { exerciseId: Types.ObjectId }[];
+export interface TrainingDayAttributes {
+  id: number;
+  userId: number;      // FK -> users.id
+  label: string;       // nome do dia (ex.: "A", "Pernas", etc.)
   isArchived: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-const trainingDaySchema = new Schema<ITrainingDay>(
-  {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    label: { type: String, required: true, trim: true, minlength: 2, maxlength: 100 },
-    exercises: [
-      {
-        exerciseId: { type: Schema.Types.ObjectId, ref: "Exercise", required: true },
+export type TrainingDayCreationAttributes = Optional<
+  TrainingDayAttributes,
+  "id" | "isArchived" | "createdAt" | "updatedAt"
+>;
+
+export default function trainingDayFactory(
+  sequelize: Sequelize
+): ModelCtor<Model<TrainingDayAttributes, TrainingDayCreationAttributes>> {
+  const TrainingDay = sequelize.define<Model<TrainingDayAttributes, TrainingDayCreationAttributes>>(
+    "TrainingDay",
+    {
+      id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+      userId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: { model: "users", key: "id" },
+        onUpdate: "CASCADE",
+        onDelete: "CASCADE",
       },
-    ],
-    isArchived: { type: Boolean, default: false },
-  },
-  { timestamps: true }
-);
+      label: {
+        type: DataTypes.STRING(100),
+        allowNull: false,
+        validate: { len: [2, 100] },
+        set(this: Model, value: string) {
+          this.setDataValue("label", (value ?? "").trim());
+        },
+      },
+      isArchived: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+    },
+    {
+      tableName: "training_days",
+      timestamps: true,
+      indexes: [
+        // unicidade por usuário + label (mesma ideia do índice do Mongoose)
+        { unique: true, fields: ["userId", "label"] },
+        { fields: ["userId"] },
+      ],
+    }
+  );
 
-trainingDaySchema.index({ userId: 1, label: 1 }, { unique: true });
-
-// Validação extra antes de salvar: evitar duplicados
-trainingDaySchema.pre("validate", function (next) {
-  const ids = this.exercises.map(e => e.exerciseId.toString());
-  const set = new Set(ids);
-  if (ids.length !== set.size) {
-    return next(new Error("Exercício duplicado no dia"));
-  }
-  next();
-});
-
-export const TrainingDay = model<ITrainingDay>("TrainingDay", trainingDaySchema);
+  return TrainingDay;
+}

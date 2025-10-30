@@ -1,4 +1,4 @@
-# Mini Projeto Fullstack - MongoDB
+# Mini Projeto Fullstack - PostgreSQL
 
 ## App para registro de treinos
 
@@ -10,7 +10,6 @@ O usuário pode criar vários exercícios diferentes (inserindo nome, grupo musc
 ### Tecnologias utilizadas:
 - Node.JS
 - Typescript
-- MongoDB
+- PostgreSQL
 
 ### Link de explicação das requests:
-https://www.youtube.com/watch?v=QW2_5GJuXOs 

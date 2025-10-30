@@ -1,9 +1,12 @@
 import bcrypt from "bcryptjs";
 import jwt, { Secret, SignOptions } from "jsonwebtoken";
-import { User } from "../models/user.model";
+import db from "../models"; 
+import { UniqueConstraintError, ValidationError } from "sequelize";
 import dotenv from "dotenv";
 
 dotenv.config();
+
+const User = db.users;
 
 function getJwtSecret(): Secret {
   const s = process.env.JWT_SECRET;
@@ -44,8 +47,8 @@ function assertValidName(name: string) {
 }
 
 export async function isEmailAvailable(email: string) {
-  const exists = await User.exists({ email });
-  return !exists;
+  const exists = await User.count({ where: { email: email.trim().toLowerCase() } });
+  return exists === 0;
 }
 
 export async function registerUser(
@@ -55,38 +58,50 @@ export async function registerUser(
 ) {
 
 const emailNorm = email.trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNorm)) throw new Error("invalid_email");
-  if (plainPassword.length < 6) throw new Error("weak_password");
+if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNorm)) throw new Error("invalid_email");
+if (plainPassword.length < 6) throw new Error("weak_password");
 
-const exists = await User.exists({ email: emailNorm });
-if (exists) throw new Error("email_exists");
+const name = normalizeName(rawName);
+if (name) assertValidName(name);
 
+const exists = await db.users.count({ where: { email: emailNorm } });
+if (exists > 0) throw new Error("email_exists");
 
   const salt = await bcrypt.genSalt(10);
   const passwordHash = await bcrypt.hash(plainPassword, salt);
 
-  const name = normalizeName(rawName);
-  if (name) assertValidName(name);
 
   try {
-    const savedUser = await User.create({
+    const createData: any = {
       email: emailNorm,
       password: passwordHash,
-      ...(name ? { name } : {}),
-    });
+    };
+    if (name) createData.name = name;
+
+    const savedUser = await User.create(createData);
 
     const token = issueToken({
-      sub: savedUser._id.toString(),
-      email: savedUser.email,
-    });
-    return {
-      id: savedUser._id,
-      email: savedUser.email,
-      name: savedUser.name ?? null,
-      token,
-    };
+  sub: String(savedUser.get("id")),
+  email: savedUser.get("email") as string,
+});
+
+return {
+  id: savedUser.get("id"),
+  email: savedUser.get("email"),
+  name: (savedUser.get("name") as string) ?? null,
+  token,
+};
+
   } catch (error: any) {
-    if (error?.code === 11000) throw new Error("email_exists");
+    if (error instanceof UniqueConstraintError) throw new Error("email_exists");
+if (error instanceof ValidationError) {
+  const msg = error.errors.map(e => e.message).join("; ");
+  const err = new Error(msg || "validation_error");
+  // @ts-ignore
+  err.status = 400;
+  throw err;
+}
+
     console.error("[registerUser] create error:", {
       code: error?.code,
       keyValue: error?.keyValue,
@@ -98,7 +113,7 @@ if (exists) throw new Error("email_exists");
 
 export async function loginUser(email: string, plainPassword: string) {
   const emailNorm = email.trim().toLowerCase();
-  const user = await User.findOne({ email: emailNorm }).select("+password");
+  const user = await User.findOne({ where: { email: emailNorm } });
 
   if (!user) {
     // compara com hash dummy para igualar tempo de resposta
@@ -108,13 +123,14 @@ export async function loginUser(email: string, plainPassword: string) {
     throw err;
   }
 
-  const ok = await bcrypt.compare(plainPassword, user.password); // senha hasheada
+const ok = await bcrypt.compare(plainPassword, (user.get("password") as string) || "");
   if (!ok) {
     const err: any = new Error("wrong_password");
     err.status = 401;
     throw err;
   }
 
-  const token = issueToken({ sub: user._id.toString(), email: user.email });
-  return { token };
+  const token = issueToken({ sub: String(user.get("id")), email: user.get("email") as string });
+return { token };
+
 }

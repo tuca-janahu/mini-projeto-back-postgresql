@@ -1,9 +1,9 @@
 import { Router } from "express";
 import * as ctrl from "../controllers/exercise.controller";
-import { authMiddleware } from "../middlewares/auth.middleware";
+import { requireAuth } from "../middlewares/auth.middleware";
 
 const router = Router();
-router.use(authMiddleware);
+router.use(requireAuth);
 
 router.get("/availability", ctrl.checkExercise);
 router.post("/", ctrl.addExercise);

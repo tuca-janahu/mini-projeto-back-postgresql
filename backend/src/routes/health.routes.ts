@@ -1,27 +1,34 @@
 import { Router } from "express";
-import db from "../database/configdb";
-import { connection } from "mongoose";
+import db from "../models";
 
 const r = Router();
 
 r.get("/db", async (_req, res) => {
   try {
-    const conn = await db.connect();
-    const admin = conn?.connection?.db?.admin?.();
-    const ping = admin ? await admin.ping() : null;
-    res.json({ ok: true, db: conn?.connection?.name ?? null, mongo: ping });
+    await db.sequelize.authenticate();
+    // opcional: sanity query
+    await db.sequelize.query("SELECT 1");
+    const cfg = (db.sequelize.getDialect && db.sequelize.getDialect()) || "unknown";
+    // @ts-ignore
+    const database = (db.sequelize.config?.database as string) || null;
+    res.json({ ok: true, dialect: cfg, database });
   } catch (e: any) {
     res.status(500).json({ ok: false, error: e?.message });
   }
 });
 
-r.get("/", (_req, res) =>
+
+r.get("/", (_req, res) => {
+  const cfg = db.sequelize.config || {};
+  const dialect = db.sequelize.getDialect ? db.sequelize.getDialect() : "unknown";
   res.json({
     ok: true,
     envJwt: Boolean(process.env.JWT_SECRET),
-    envMongo: Boolean(process.env.MONGODB_URI),
-    mongoState: connection?.readyState ?? -1, // 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
-  })
-);
+    envDbUrl: Boolean(process.env.DATABASE_URL) || Boolean(process.env.DB_HOST),
+    dialect,
+    database: cfg.database ?? null,
+    host: cfg.host ?? null,
+  });
+});
 
 export default r;
