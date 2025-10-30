@@ -37,13 +37,37 @@
 
   const users = userFactory(sequelize);
   const exercise = exerciseFactory(sequelize);
-  
+
   const trainingDay = trainingDayFactory(sequelize);
   const trainingDayExercise = trainingDayExerciseFactory(sequelize);
 
   const trainingSession = trainingSessionFactory(sequelize);
   const trainingSessionExercise = trainingSessionExerciseFactory(sequelize);
   const trainingSessionSet = trainingSessionSetFactory(sequelize);
+
+
+
+// 2) ASSOCIE aqui (use os mesmos nomes que exporta)
+trainingSession.belongsTo(users, { foreignKey: "userId", as: "user" });
+users.hasMany(trainingSession, { foreignKey: "userId", as: "trainingSessions" });
+
+trainingSession.belongsTo(trainingDay, { foreignKey: "trainingDayId", as: "trainingDay" });
+trainingDay.hasMany(trainingSession, { foreignKey: "trainingDayId", as: "sessions" });
+
+trainingDayExercise.belongsTo(trainingDay, { foreignKey: "trainingDayId", as: "day" });
+trainingDay.hasMany(trainingDayExercise, { foreignKey: "trainingDayId", as: "items" });
+
+trainingDayExercise.belongsTo(exercise, { foreignKey: "exerciseId", as: "exercise" });
+exercise.hasMany(trainingDayExercise, { foreignKey: "exerciseId", as: "inDays" });
+
+trainingSessionExercise.belongsTo(trainingSession, { foreignKey: "trainingSessionId", as: "session" });
+trainingSession.hasMany(trainingSessionExercise, { foreignKey: "trainingSessionId", as: "items" });
+
+trainingSessionExercise.belongsTo(exercise, { foreignKey: "exerciseId", as: "exercise" });
+exercise.hasMany(trainingSessionExercise, { foreignKey: "exerciseId", as: "sessionItems" });
+
+trainingSessionSet.belongsTo(trainingSessionExercise, { foreignKey: "trainingSessionExerciseId", as: "sessionExercise" });
+trainingSessionExercise.hasMany(trainingSessionSet, { foreignKey: "trainingSessionExerciseId", as: "sets" });
 
   export const db = {
     Sequelize,
@@ -57,23 +81,13 @@
     trainingSessionSet,
   };
 
-  // Sessão pertence a Usuário e a um TrainingDay (snapshot do plano do dia)
-  db.trainingSession.belongsTo(db.users, { foreignKey: "userId", as: "user" });
-  db.users.hasMany(db.trainingSession, { foreignKey: "userId", as: "trainingSessions" });
-
-  db.trainingSession.belongsTo(db.trainingDay, { foreignKey: "trainingDayId", as: "trainingDay" });
-  db.trainingDay.hasMany(db.trainingSession, { foreignKey: "trainingDayId", as: "sessions" });
-
-  // Em cada sessão: exercícios (1:N via tabela de sessão-exercício)
-  db.trainingSessionExercise.belongsTo(db.trainingSession, { foreignKey: "trainingSessionId", as: "session" });
-  db.trainingSession.hasMany(db.trainingSessionExercise, { foreignKey: "trainingSessionId", as: "items" });
-
-  db.trainingSessionExercise.belongsTo(db.exercise, { foreignKey: "exerciseId", as: "exercise" });
-  db.exercise.hasMany(db.trainingSessionExercise, { foreignKey: "exerciseId", as: "sessionItems" });
-
-  // Séries de cada exercício da sessão
-  db.trainingSessionSet.belongsTo(db.trainingSessionExercise, { foreignKey: "trainingSessionExerciseId", as: "sessionExercise" });
-  db.trainingSessionExercise.hasMany(db.trainingSessionSet, { foreignKey: "trainingSessionExerciseId", as: "sets" });
-
   export type DB = typeof db;
   export default db;
+
+  export async function syncDb() {
+  console.info("⏳ Syncing DB…");
+  await sequelize.authenticate();
+  // use { alter:true } só durante desenvolvimento; em produção prefira migrations
+  await sequelize.sync({ alter: true });
+  console.info("✅ DB synced.");
+}

@@ -1,10 +1,11 @@
 import app from "./app";
-import db from "./models/index";
+import { syncDb } from "./models";
+
 
 (async () => {
   try {
     const port = process.env.PORT || 3000;
-    await db.sequelize.authenticate();
+    await syncDb(); // <-- garante TODAS as tabelas criadas
     console.log("✅ Conexão com o banco estabelecida com sucesso. (SERVER)");
 
     app.listen(port, () => {

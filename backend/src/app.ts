@@ -26,13 +26,6 @@ app.use((req, _res, next) => {
   next();
 });
 
-db.sequelize.authenticate();
-if (process.env.DB_SYNC === "true") {
-  console.log("⏳ Syncing DB…");
-   db.sequelize.sync({ alter: true }); 
-  console.log("✅ DB synced.");
-}
-
 app.get("/", (_req, res) => {
   res.send("✅ API online");
 });
