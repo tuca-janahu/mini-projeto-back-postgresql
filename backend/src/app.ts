@@ -29,7 +29,7 @@ app.use((req, _res, next) => {
 db.sequelize.authenticate();
 if (process.env.DB_SYNC === "true") {
   console.log("⏳ Syncing DB…");
-   db.sequelize.sync({ alter: true }); // só em DEV!
+   db.sequelize.sync({ alter: true }); 
   console.log("✅ DB synced.");
 }
 

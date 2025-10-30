@@ -1,4 +1,3 @@
-// api/index.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import app from "../src/app";
 import db from "../src/models";
@@ -12,8 +11,8 @@ async function ensureBoot() {
 
   if (process.env.DB_SYNC === "true") {
     console.log("⏳ Syncing DB (alter)...");
-    await db.sequelize.sync({ alter: true }); // cria/ajusta tabelas
-    console.log("✅ DB synced.");
+    await db.sequelize.sync({ alter: true }); 
+    console.log("✅ DB synced (API).");
   }
 
   bootstrapped = true;

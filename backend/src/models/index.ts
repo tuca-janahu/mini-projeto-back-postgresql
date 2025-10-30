@@ -37,6 +37,7 @@
 
   const users = userFactory(sequelize);
   const exercise = exerciseFactory(sequelize);
+  
   const trainingDay = trainingDayFactory(sequelize);
   const trainingDayExercise = trainingDayExerciseFactory(sequelize);
 

@@ -18,7 +18,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!token) return res.status(401).json({ error: "Token faltando" });
 
   try {
-    const payload = jwt.verify(token, SECRET) as JwtPayload;
+    const payload = jwt.verify(token, SECRET, { clockTolerance: 30 }) as JwtPayload;
     (req as any).user = { sub: String(payload.sub), email: (payload as any).email };
     return next();
   } catch (err: any) {
