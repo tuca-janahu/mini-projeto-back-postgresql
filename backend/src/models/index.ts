@@ -2,7 +2,7 @@
   import userFactory from "./user.model";
   import exerciseFactory from "./exercise.model";
   import trainingDayFactory from "./trainingDay.model";
-  import trainingDayExerciseFactory from "./trainingDay.model";
+  import trainingDayExerciseFactory from "./trainingDayExercise.model";
 
   import trainingSessionFactory from "./trainingSession.model";
   import trainingSessionSetFactory from "./trainingSessionSet.model";
