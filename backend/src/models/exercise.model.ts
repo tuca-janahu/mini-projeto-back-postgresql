@@ -18,9 +18,9 @@ export type WeightUnit = "kg" | "stack" | "bodyweight";
 
 export interface ExerciseAttributes {
   id: number;
-  userId: number;          // FK -> users.id (inteiro, coerente com seu User)
+  userId: number;          
   name: string;
-  nameLower: string;       // auxiliar p/ unicidade case-insensitive
+  nameLower: string;       
   muscleGroup: MuscleGroup;
   weightUnit: WeightUnit;
   isArchived: boolean;
@@ -44,7 +44,6 @@ export default function exerciseFactory(
       userId: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        // Se quiser reforçar FK no nível do DB:
         references: { model: "users", key: "id" },
         onUpdate: "CASCADE",
         onDelete: "CASCADE",
@@ -99,7 +98,6 @@ export default function exerciseFactory(
       tableName: "exercises",
       timestamps: true,
       defaultScope: {
-        // não expor o campo auxiliar
         attributes: { exclude: ["nameLower"] },
       },
       indexes: [

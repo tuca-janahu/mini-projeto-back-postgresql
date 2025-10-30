@@ -1,4 +1,3 @@
-// src/services/trainingDay.service.ts
 import db from "../models";
 import { Transaction, Op } from "sequelize";
 
