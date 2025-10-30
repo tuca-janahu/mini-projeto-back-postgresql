@@ -5,7 +5,7 @@ dotenv.config();
 const dbConfig = {
   host: process.env.DB_HOST,
   port: Number(process.env.DB_PORT),
-  database: process.env.POSTGRES_DB,
+  database: process.env.POSTGRES_DATABASE,
   username: process.env.POSTGRES_USERNAME,
   password: process.env.POSTGRES_PASSWORD,
   dialect: "postgres",
