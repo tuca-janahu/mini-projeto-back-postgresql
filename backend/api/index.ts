@@ -1,13 +1,18 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-import app from "../src/app";
-import { ensureDb } from "../src/models";
+// api/index.ts
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import app from '../src/app';                  // ajuste o caminho se seu app.ts está em src/ ou backend/src/
+import { ensureDb } from '../src/models'; // caminho para o seu /models/index.ts
 
-let booted = false;
+let bootstrapped = false;
+
+async function boot() {
+  if (bootstrapped) return;
+  await ensureDb(); // faz authenticate + sync({alter:true}) de forma segura e idempotente
+  bootstrapped = true;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (!booted) {
-    await ensureDb();     // <— GARANTE MODELS + SYNC antes do 1º request
-    booted = true;
-  }
-  return (app as any)(req, res);
+  await boot();
+  // @ts-ignore — express handler compatível
+  return app(req, res);
 }

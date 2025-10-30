@@ -84,16 +84,12 @@ declare global {
   var __dbReady: Promise<void> | undefined;
 }
 
-export function ensureDb(): Promise<void> {
-  if (!globalThis.__dbReady) {
-    globalThis.__dbReady = (async () => {
-      await sequelize.authenticate();
-      // Em PROD, preferir migrations. Para destravar agora, use sync().
-      await sequelize.sync(); // ou { alter: true } somente em DEV
-      console.info("✅ DB ready (authenticate + sync).");
-    })();
-  }
-  return globalThis.__dbReady;
+export async function ensureDb() {
+  console.info("⏳ ensureDb: authenticating…");
+  await sequelize.authenticate();
+  console.info("⏳ ensureDb: syncing…");
+  await sequelize.sync({ alter: true }); // em produção, troque por migrations
+  console.info("✅ ensureDb: done.");
 }
 
 export default db;
