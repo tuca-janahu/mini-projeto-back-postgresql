@@ -3,9 +3,6 @@ import { Sequelize } from "sequelize";
 import pg from "pg";
 import dbConfig from "../config/configdb";
 
-const url = process.env.DATABASE_URL!;
-if (!url) throw new Error('DATABASE_URL missing');
-
 // MODELS (fábricas)
 import userFactory from "./user.model";
 import exerciseFactory from "./exercise.model";
@@ -16,30 +13,52 @@ import trainingSessionExerciseFactory from "./trainingSessionExercise.model";
 import trainingSessionSetFactory from "./trainingSessionSet.model";
 
 const isSSL = process.env.DB_SSL === "1";
+const databaseUrl = process.env.DATABASE_URL; 
 
-const sequelize = new Sequelize(
-  dbConfig.database as string,
-  dbConfig.username as string,
-  dbConfig.password as string,
-  {
-    host: dbConfig.host,
-    port: dbConfig.port as number,
+let sequelize: Sequelize;
+
+ if (databaseUrl) {
+  // PRODUÇÃO (Vercel): usar URL + SSL
+  sequelize = new Sequelize(databaseUrl, {
     dialect: "postgres",
     dialectModule: pg as any,
-   dialectOptions: isSSL
-    ? { ssl: { require: true, rejectUnauthorized: false } }
-    : undefined,
-     
-    pool: {
-      max: dbConfig.pool?.max ?? 2,
-      min: dbConfig.pool?.min ?? 0,
-      acquire: dbConfig.pool?.acquire ?? 30000,
-      idle: dbConfig.pool?.idle ?? 10000,
-      evict: dbConfig.pool?.evict ?? 10000,
-    },
     logging: false,
-  }
-);
+    dialectOptions: {
+      ssl: { require: true, rejectUnauthorized: false },
+    },
+    pool: {
+      max: 2,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
+      evict: 10000,
+    },
+  });
+} else {
+  // DESENVOLVIMENTO (local)
+  sequelize = new Sequelize(
+    dbConfig.database as string,
+    dbConfig.username as string,
+    dbConfig.password as string,
+    {
+      host: dbConfig.host,
+      port: dbConfig.port as number,
+      dialect: "postgres",
+      dialectModule: pg as any,
+      logging: false,
+      dialectOptions: isSSL
+        ? { ssl: { require: true, rejectUnauthorized: false } }
+        : undefined,
+      pool: {
+        max: dbConfig.pool?.max ?? 2,
+        min: dbConfig.pool?.min ?? 0,
+        acquire: dbConfig.pool?.acquire ?? 30000,
+        idle: dbConfig.pool?.idle ?? 10000,
+        evict: dbConfig.pool?.evict ?? 10000,
+      },
+    }
+  );
+}
 
 // — Definição dos models —
 const users = userFactory(sequelize);
