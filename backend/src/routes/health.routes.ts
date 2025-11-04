@@ -9,7 +9,7 @@ router.get("/", (_req, res) => {
   res.json({
     ok: true,
     envJwt: Boolean(process.env.JWT_SECRET),
-    envDbUrl: Boolean(process.env.DATABASE_URL) || Boolean(process.env.DB_HOST),
+    envDbUrl: Boolean(process.env.DATABASE_URL),
     dialect,
     database: cfg.database ?? null,
     host: cfg.host ?? null,

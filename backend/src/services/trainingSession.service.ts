@@ -7,6 +7,8 @@ const Exercise = db.exercises;
 const TrainingSession = db.trainingSessions;
 const TrainingSessionExercise = db.trainingSessionExercises;
 const TrainingSessionSet = db.trainingSessionSets;
+const TrainingDayExercise = db.trainingDayExercises;
+
 
 /* ===== Types equivalentes ===== */
 export type SetItem = { reps: number | null; weight: number | null };
@@ -227,93 +229,73 @@ export async function getPrefillForTrainingDay(
   userId: string | number,
   trainingDayId: string | number
 ) {
-  const uid = toId(userId);
-  const tid = toId(trainingDayId);
+  const uid = Number(userId);
+  const tid = Number(trainingDayId);
+  if (!Number.isFinite(uid) || !Number.isFinite(tid)) throw new Error("E_INVALID_ID");
 
-  // 1) obter o dia + exercícios do dia
-  const day = await TrainingDay.findOne({
-    where: { id: tid, userId: uid },
-    include: [{ model: Exercise, as: "exercises", attributes: ["id"] }],
-  });
+  // 1) Verifica se o dia é do usuário
+  const day = await TrainingDay.findOne({ where: { id: tid, userId: uid } });
   if (!day) throw new Error("E_TRAINING_DAY_NOT_FOUND");
 
-  const exerciseIds = (day as any).exercises.map((e: any) => Number(e.id)) as number[];
+  // 2) Pega os exerciseIds pela PIVÔ
+  const pivots = await TrainingDayExercise.findAll({
+    where: { trainingDayId: tid },
+    attributes: ["exerciseId"],
+  });
+  const exerciseIds = pivots.map(p => Number(p.get("exerciseId"))).filter(Boolean);
 
-  async function findLastWithExercise(whereExtra: any) {
-    return await TrainingSession.findOne({
-      where: { userId: uid, ...whereExtra },
-      order: [["performedAt", "DESC"]],
-      include: [
-        {
-          model: TrainingSessionExercise,
-          as: "items",
-          required: true,
-          where: { exerciseId: { [Op.in]: exerciseIds } },
-          include: [{ model: TrainingSessionSet, as: "sets" }],
-        },
-      ],
-    });
-  }
-
-  const prefill = [] as Array<{ exerciseId: number; sets: SetItem[] }>;
+  const prefill: Array<{ exerciseId: number; sets: SetItem[] }> = [];
 
   for (const exId of exerciseIds) {
+    // 2a) último no MESMO dia
     const lastSameDay = await TrainingSession.findOne({
       where: { userId: uid, trainingDayId: tid },
       order: [["performedAt", "DESC"]],
-      include: [
-        {
-          model: TrainingSessionExercise,
-          as: "items",
-          required: true,
-          where: { exerciseId: exId },
-          include: [{ model: TrainingSessionSet, as: "sets" }],
-        },
-      ],
+      include: [{
+        model: TrainingSessionExercise,
+        as: "items",
+        required: true,
+        where: { exerciseId: exId },
+        include: [{ model: TrainingSessionSet, as: "sets" }],
+      }],
     });
 
-    if (lastSameDay) {
+    if (lastSameDay && (lastSameDay as any).items?.[0]?.sets?.length) {
       const item = (lastSameDay as any).items[0];
-      if (item?.sets?.length) {
-        prefill.push({
-          exerciseId: exId,
-          sets: item.sets
-            .sort((a: any, b: any) => a.order - b.order)
-            .map((s: any) => ({ reps: s.reps, weight: s.weight })),
-        });
-        continue;
-      }
+      prefill.push({
+        exerciseId: exId,
+        sets: item.sets
+          .sort((a: any, b: any) => a.order - b.order)
+          .map((s: any) => ({ reps: s.reps, weight: s.weight })),
+      });
+      continue;
     }
 
-    // 3) último global
+    // 2b) último GLOBAL
     const lastGlobal = await TrainingSession.findOne({
       where: { userId: uid },
       order: [["performedAt", "DESC"]],
-      include: [
-        {
-          model: TrainingSessionExercise,
-          as: "items",
-          required: true,
-          where: { exerciseId: exId },
-          include: [{ model: TrainingSessionSet, as: "sets" }],
-        },
-      ],
+      include: [{
+        model: TrainingSessionExercise,
+        as: "items",
+        required: true,
+        where: { exerciseId: exId },
+        include: [{ model: TrainingSessionSet, as: "sets" }],
+      }],
     });
 
-    if (lastGlobal) {
+    if (lastGlobal && (lastGlobal as any).items?.[0]?.sets?.length) {
       const item = (lastGlobal as any).items[0];
-      if (item?.sets?.length) {
-        prefill.push({
-          exerciseId: exId,
-          sets: item.sets
-            .sort((a: any, b: any) => a.order - b.order)
-            .map((s: any) => ({ reps: s.reps, weight: s.weight })),
-        });
-        continue;
-      }
+      prefill.push({
+        exerciseId: exId,
+        sets: item.sets
+          .sort((a: any, b: any) => a.order - b.order)
+          .map((s: any) => ({ reps: s.reps, weight: s.weight })),
+      });
+      continue;
     }
 
-    // 4) fallback: 3 vazias
+    // 2c) fallback: 3 sets vazios
     prefill.push({
       exerciseId: exId,
       sets: [

@@ -15,12 +15,12 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-app.use(async (_req, res, next) => {
-  try { await ensureDb(); 
-    res.send("banco conectado com sucesso")    
-    next(); }
-  catch (e) { console.error(e); res.status(500).json({ error: "DB not ready" }); }
-});
+// app.use(async (_req, res, next) => {
+//   try { await ensureDb(); 
+//     res.send("banco conectado com sucesso")    
+//     next(); }
+//   catch (e) { console.error(e); res.status(500).json({ error: "DB not ready" }); }
+// });
 
 app.get("/", (_req, res) => res.send("✅ API online"));
 

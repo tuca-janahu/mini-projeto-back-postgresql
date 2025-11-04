@@ -33,14 +33,29 @@ export async function createTrainingDay(
 
     // vincula exercícios (join), evitando duplicado via índice único
     if (ids.length) {
-      await (day as any).$add("exercises", ids, { transaction: tx });
+  await db.trainingDayExercises.bulkCreate(
+    ids.map((exerciseId: number) => ({
+      trainingDayId: day.get("id") as number,
+      exerciseId,
+    })),
+    {
+      transaction: tx,
+      ignoreDuplicates: true, // requer índice único (trainingDayId, exerciseId)
     }
+  );
+}
 
     // retornar com include
     const full = await db.trainingDays.findByPk(day.get("id") as number, {
-      include: [{ model: db.exercises, as: "exercises" }],
-      transaction: tx,
-    });
+  include: [
+    {
+      model: db.trainingDayExercises,
+      as: "items",
+      include: [{ model: db.exercises, as: "exercise" }],
+    },
+  ],
+  transaction: tx,
+});
     return full!;
   });
 }
@@ -57,9 +72,17 @@ export async function listTrainingDays(userId: string | number) {
 export async function getTrainingDay(userId: string | number, id: string | number) {
   const uid = toId(userId);
   const tid = toId(id);
+
   return await db.trainingDays.findOne({
     where: { id: tid, userId: uid },
-    include: [{ model: db.exercises, as: "exercises" }],
+    include: [
+      {
+        model: db.trainingDayExercises,
+        as: "items",
+        include: [{ model: db.exercises, as: "exercise" }],
+      },
+    ],
+    order: [[{ model: db.trainingDayExercises, as: "items" }, "id", "ASC"]],
   });
 }
 
@@ -73,20 +96,27 @@ export async function updateTrainingDay(
   const tid = toId(id);
 
   return await db.sequelize.transaction(async (tx: Transaction) => {
-    const day = await db.trainingDays.findOne({ where: { id: tid, userId: uid }, transaction: tx });
+    const day = await db.trainingDays.findOne({
+      where: { id: tid, userId: uid },
+      transaction: tx,
+      lock: tx.LOCK.UPDATE, // evita write skew sob concorrência
+    });
     if (!day) return null;
 
-    // atualiza label
+    // 1) label (opcional)
     if (typeof label === "string" && label.trim()) {
       day.set({ label: label.trim() });
       await day.save({ transaction: tx });
     }
 
-    // atualiza exercises
+    // 2) exercises (opcional) — replace-all na tabela de junção
     if (Array.isArray(exercises)) {
       const ids = exercises.map(e => toId(e.exerciseId));
+
+      // valida duplicados
       if (new Set(ids).size !== ids.length) throw new Error("Duplicated exercises");
 
+      // valida existência/pertencimento ao usuário
       if (ids.length) {
         const valid = await db.exercises.count({
           where: { id: { [Op.in]: ids }, userId: uid },
@@ -95,15 +125,40 @@ export async function updateTrainingDay(
         if (valid !== ids.length) throw new Error("Invalid exercises");
       }
 
-      // substituir o conjunto
-      await (day as any).$set("exercises", ids, { transaction: tx });
+      // apaga todas as linhas antigas do dia
+      await db.trainingDayExercises.destroy({
+        where: { trainingDayId: tid },
+        transaction: tx,
+      });
+
+      // recria (se houver novas)
+      if (ids.length) {
+        await db.trainingDayExercises.bulkCreate(
+          ids.map((exerciseId: number) => ({
+            trainingDayId: tid,
+            exerciseId,
+          })),
+          {
+            transaction: tx,
+            ignoreDuplicates: true, // exige índice único (trainingDayId, exerciseId)
+          }
+        );
+      }
     }
 
-    // retornar com include
+    // 3) retorna com include consistente
     const full = await db.trainingDays.findByPk(tid, {
-      include: [{ model: db.exercises, as: "exercises" }],
+      include: [
+        {
+          model: db.trainingDayExercises,
+          as: "items",
+          include: [{ model: db.exercises, as: "exercise" }],
+        },
+      ],
+      order: [[{ model: db.trainingDayExercises, as: "items" }, "id", "ASC"]],
       transaction: tx,
     });
+
     return full!;
   });
 }
