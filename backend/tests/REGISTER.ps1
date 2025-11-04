@@ -1,7 +1,7 @@
 param(
-  [string]$Base     = "http://localhost:3000",
-  [string]$Email    = "novo.user@example.com",
-  [string]$Name     = "Novo User",
+  [string]$Base     = "https://mini-projeto-back-postgresql.vercel.app/",
+  [string]$Email    = "novo.user2@example.com",
+  [string]$Name     = "Novo User 2",
   [string]$Password = "123456"
 )
 

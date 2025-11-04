@@ -15,6 +15,8 @@ import trainingSessionFactory from "./trainingSession.model";
 import trainingSessionExerciseFactory from "./trainingSessionExercise.model";
 import trainingSessionSetFactory from "./trainingSessionSet.model";
 
+const isSSL = process.env.DB_SSL === "1";
+
 const sequelize = new Sequelize(
   dbConfig.database as string,
   dbConfig.username as string,
@@ -24,8 +26,9 @@ const sequelize = new Sequelize(
     port: dbConfig.port as number,
     dialect: "postgres",
     dialectModule: pg as any,
-    // dialectOptions: 
-    // { ssl: { require: true, rejectUnauthorized: false } },
+   dialectOptions: isSSL
+    ? { ssl: { require: true, rejectUnauthorized: false } }
+    : undefined,
      
     pool: {
       max: dbConfig.pool?.max ?? 2,
