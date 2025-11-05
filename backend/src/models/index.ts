@@ -91,6 +91,23 @@ exercises.hasMany(trainingSessionExercises, { foreignKey: "exerciseId", as: "ses
 trainingSessionSets.belongsTo(trainingSessionExercises, { foreignKey: "trainingSessionExerciseId", as: "sessionExercise" });
 trainingSessionExercises.hasMany(trainingSessionSets, { foreignKey: "trainingSessionExerciseId", as: "sets" });
 
+declare global {
+  var __dbReady: Promise<void> | undefined;
+}
+
+export async function ensureDb() {
+  if (!global.__dbReady) {
+    global.__dbReady = (async () => {
+      console.info("[DB] authenticate...");
+      await sequelize.authenticate();
+      console.info("[DB] sync alter (dev hotfix)...");
+      await sequelize.sync({ alter: true }); 
+      console.info("[DB] ready.");
+    })();
+  }
+  return global.__dbReady;
+}
+
 export const db = {
   sequelize,
   users,
@@ -103,18 +120,5 @@ export const db = {
 };
 export type DB = typeof db;
 
-// — Bootstrap com cache global (funciona no Vercel) —
-declare global {
-  // eslint-disable-next-line no-var
-  var __dbReady: Promise<void> | undefined;
-}
-
-export async function ensureDb() {
-  console.info("⏳ ensureDb: authenticating…");
-  await sequelize.authenticate();
-  console.info("⏳ ensureDb: syncing…");
-  await sequelize.sync({ alter: true }); // em produção, troque por migrations
-  console.info("✅ ensureDb: done.");
-}
 
 export default db;

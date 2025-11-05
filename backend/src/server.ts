@@ -1,12 +1,11 @@
 import app from "./app";
-import { ensureDb } from "./models";
 
 
 (async () => {
   try {
     const port = process.env.PORT || 3000;
-    await ensureDb(); // <-- garante TODAS as tabelas criadas
-    console.log("✅ Conexão com o banco estabelecida com sucesso. (SERVER)");
+    // await ensureDb(); // <-- garante TODAS as tabelas criadas
+    // console.log("✅ Conexão com o banco estabelecida com sucesso. (SERVER)");
 
     app.listen(port, () => {
       console.log(`🚀 Servidor no ar: http://localhost:${port}`);
