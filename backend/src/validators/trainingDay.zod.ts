@@ -2,10 +2,10 @@ import { z } from "zod";
 
 export const trainingDayCreateSchema = z.object({
   label: z.string().min(2).max(100),
-  exercises: z.array(z.object({ exerciseId: z.int().min(1) })).default([]),
+  exercises: z.array(z.object({ exerciseId: z.coerce.number().int().min(1) })).default([]),
 });
 
 export const trainingDayUpdateSchema = z.object({
   label: z.string().min(2).max(100).optional(),
-  exercises: z.array(z.object({ exerciseId: z.int().min(1) })).optional(),
+  exercises: z.array(z.object({ exerciseId: z.coerce.number().int().min(1) })).optional(),
 });

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const TrainingDayItem = z.object({
-  trainingDayId: z.string().min(1, "trainingDayId é obrigatório"),
+  trainingDayId: z.coerce.number().int().min(1, "trainingDayId é obrigatório"),
 });
 
 export const CreateSessionSchema = z.object({
