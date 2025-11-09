@@ -11,49 +11,50 @@ import trainingSessionFactory from "./trainingSession.model";
 import trainingSessionExerciseFactory from "./trainingSessionExercise.model";
 import trainingSessionSetFactory from "./trainingSessionSet.model";
 
-const databaseUrl = process.env.DATABASE_URL ?? "";     // Se existir, produção (Vercel)
-const isProd = !!databaseUrl;
+const isSSL = process.env.DB_SSL === "1";
+const databaseUrl = process.env.DATABASE_URL; 
 
-const useSSL = (process.env.DB_SSL ?? "1") !== "0";
-
-// 2) Opções comuns (serverless friendly)
-const common = {
-  dialect: "postgres" as const,
-  dialectModule: pg as any,
-  logging: false,
-  pool: {
-    max: 2,         // serverless, manter baixo
-    min: 0,
-    acquire: 30_000,
-    idle: 10_000,
-    evict: 10_000,
-  },
-  // SSL só se habilitado
-  dialectOptions: useSSL
-    ? {
-        ssl: { require: true, rejectUnauthorized: false },
-        keepAlive: true,
-      }
-    : undefined,
-};
-
-// 3) Instância do Sequelize
 let sequelize: Sequelize;
 
-if (isProd) {
-  // PRODUÇÃO (Vercel): usa a URL completa do provedor
-
-  sequelize = new Sequelize(databaseUrl, common);
+ if (databaseUrl) {
+  // PRODUÇÃO (Vercel): usar URL + SSL
+  sequelize = new Sequelize(databaseUrl, {
+    dialect: "postgres",
+    dialectModule: pg as any,
+    logging: false,
+    dialectOptions: {
+      ssl: { require: true, rejectUnauthorized: false },
+    },
+    pool: {
+      max: 2,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
+      evict: 10000,
+    },
+  });
 } else {
-  // DESENVOLVIMENTO (local): usa dados discretos do config
+  // DESENVOLVIMENTO (local)
   sequelize = new Sequelize(
     dbConfig.database as string,
     dbConfig.username as string,
     dbConfig.password as string,
     {
-      ...common,
       host: dbConfig.host,
       port: dbConfig.port as number,
+      dialect: "postgres",
+      dialectModule: pg as any,
+      logging: false,
+      dialectOptions: isSSL
+        ? { ssl: { require: true, rejectUnauthorized: false } }
+        : undefined,
+      pool: {
+        max: dbConfig.pool?.max ?? 2,
+        min: dbConfig.pool?.min ?? 0,
+        acquire: dbConfig.pool?.acquire ?? 30000,
+        idle: dbConfig.pool?.idle ?? 10000,
+        evict: dbConfig.pool?.evict ?? 10000,
+      },
     }
   );
 }
@@ -96,10 +97,19 @@ declare global {
 export async function ensureDb() {
   if (!global.__dbReady) {
     global.__dbReady = (async () => {
-      console.info("[DB] authenticate...");
+      const doAlter = process.env.DB_ALTER === "1"; // 1 => alterar schema
+
+      console.info(`[DB] authenticate... (alter=${doAlter})`);
       await sequelize.authenticate();
-      console.info("[DB] sync alter (dev hotfix)...");
-      await sequelize.sync({ alter: true }); 
+
+      if (doAlter) {
+        console.info("[DB] sync({ alter: true })");
+        await sequelize.sync({ alter: true });
+      } else {
+        console.info("[DB] skipping sync; pinging...");
+        await sequelize.query("SELECT 1");
+      }
+
       console.info("[DB] ready.");
     })();
   }
