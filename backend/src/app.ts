@@ -11,8 +11,33 @@ import { ensureDb } from "./models";
 
 const app = express();
 
+/* ===== CORS (produção + local) ===== */
+const ORIGINS = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map(s => s.trim())
+  .filter(Boolean);
+
+const corsOptions: CorsOptions = {
+  origin(origin, cb) {
+    if (!origin || ORIGINS.includes(origin)) return cb(null, true);
+    console.warn("[CORS] Origin NÃO permitida:", origin, "Permitidas:", ORIGINS);
+    return cb(new Error("Not allowed by CORS"));
+  },
+  credentials: true, // permite cookies se você usar httpOnly
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+app.use((_, res, next) => { res.setHeader("Vary", "Origin"); next(); });
+
+// Preflight universal (não use "*" com path-to-regexp)
+app.options(/.*/, cors(corsOptions));
+
+/* ===== Body/ Cookies ===== */
 app.use(express.json());
-app.use(cors());
+app.use(cookieParser());
 
 app.use(async (_req, res, next) => {
   try { await ensureDb(); next(); }

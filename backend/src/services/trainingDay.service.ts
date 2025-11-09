@@ -15,12 +15,14 @@ export async function createTrainingDay(
   const uid = toId(userId);
 
   // valida duplicados
-  const ids = (exercises ?? []).map(e => toId(e.exerciseId));
+  const ids = (exercises ?? []).map((e) => toId(e.exerciseId));
   if (new Set(ids).size !== ids.length) throw new Error("Duplicated exercises");
 
   // valida existência/pertencimento
   if (ids.length) {
-    const valid = await db.exercises.count({ where: { id: { [Op.in]: ids }, userId: uid } });
+    const valid = await db.exercises.count({
+      where: { id: { [Op.in]: ids }, userId: uid },
+    });
     if (valid !== ids.length) throw new Error("Invalid exercises");
   }
 
@@ -33,29 +35,29 @@ export async function createTrainingDay(
 
     // vincula exercícios (join), evitando duplicado via índice único
     if (ids.length) {
-  await db.trainingDayExercises.bulkCreate(
-    ids.map((exerciseId: number) => ({
-      trainingDayId: day.get("id") as number,
-      exerciseId,
-    })),
-    {
-      transaction: tx,
-      ignoreDuplicates: true, // requer índice único (trainingDayId, exerciseId)
+      await db.trainingDayExercises.bulkCreate(
+        ids.map((exerciseId: number) => ({
+          trainingDayId: day.get("id") as number,
+          exerciseId,
+        })),
+        {
+          transaction: tx,
+          ignoreDuplicates: true, // requer índice único (trainingDayId, exerciseId)
+        }
+      );
     }
-  );
-}
 
     // retornar com include
     const full = await db.trainingDays.findByPk(day.get("id") as number, {
-  include: [
-    {
-      model: db.trainingDayExercises,
-      as: "items",
-      include: [{ model: db.exercises, as: "exercise" }],
-    },
-  ],
-  transaction: tx,
-});
+      include: [
+        {
+          model: db.trainingDayExercises,
+          as: "items",
+          include: [{ model: db.exercises, as: "exercise" }],
+        },
+      ],
+      transaction: tx,
+    });
     return full!;
   });
 }
@@ -68,8 +70,11 @@ export async function listTrainingDays(userId: string | number) {
   });
 }
 
-// GET: um dia do usuário (com exercises) 
-export async function getTrainingDay(userId: string | number, id: string | number) {
+// GET: um dia do usuário (com exercises)
+export async function getTrainingDay(
+  userId: string | number,
+  id: string | number
+) {
   const uid = toId(userId);
   const tid = toId(id);
 
@@ -111,10 +116,11 @@ export async function updateTrainingDay(
 
     // 2) exercises (opcional) — replace-all na tabela de junção
     if (Array.isArray(exercises)) {
-      const ids = exercises.map(e => toId(e.exerciseId));
+      const ids = exercises.map((e) => toId(e.exerciseId));
 
       // valida duplicados
-      if (new Set(ids).size !== ids.length) throw new Error("Duplicated exercises");
+      if (new Set(ids).size !== ids.length)
+        throw new Error("Duplicated exercises");
 
       // valida existência/pertencimento ao usuário
       if (ids.length) {
@@ -163,10 +169,15 @@ export async function updateTrainingDay(
   });
 }
 
-export async function archiveTrainingDay(userId: string | number, id: string | number) {
+export async function archiveTrainingDay(
+  userId: string | number,
+  id: string | number
+) {
   const uid = toId(userId);
   const tid = toId(id);
-  const day = await db.trainingDays.findOne({ where: { id: tid, userId: uid } });
+  const day = await db.trainingDays.findOne({
+    where: { id: tid, userId: uid },
+  });
   if (!day) return null;
   day.set({ isArchived: true });
   await day.save();
