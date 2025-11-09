@@ -1,6 +1,6 @@
 import express from "express";
-import cors from "cors";
-
+import cors, { CorsOptions } from "cors";
+import cookieParser from "cookie-parser"; 
 import userRoutes from "./routes/user.routes";
 import exerciseRoutes from "./routes/exercise.routes";
 import trainingDayRoutes from "./routes/trainingDay.routes";
